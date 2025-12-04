@@ -1,9 +1,7 @@
-package dev.J;
+package dev.J.Entities;
 
 import jakarta.persistence.*;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Entity

@@ -1,7 +1,9 @@
 plugins {
     java
     war
+    id ("io.spring.dependency-management") version "1.0.6.RELEASE"
 }
+
 
 group = "dev.J"
 version = "1.0-SNAPSHOT"
@@ -44,7 +46,18 @@ dependencies {
 
     implementation("org.postgresql:postgresql:42.7.8")
 
+
+    // https://mvnrepository.com/artifact/org.mindrot/jbcrypt
+    implementation("org.mindrot:jbcrypt:0.4")
+
 }
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.security:spring-security-bom:7.0.0")
+    }
+}
+
 
 tasks.test {
     useJUnitPlatform()

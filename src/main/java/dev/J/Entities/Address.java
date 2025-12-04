@@ -1,8 +1,6 @@
-package dev.J;
+package dev.J.Entities;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import lombok.Getter;
 
 @Embeddable
 public record Address( String streetNumber, String streetName, String city, String postalCode) {

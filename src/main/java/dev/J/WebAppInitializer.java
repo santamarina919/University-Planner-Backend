@@ -20,7 +20,7 @@ public class WebAppInitializer implements WebApplicationInitializer {
         DispatcherServlet servlet = new DispatcherServlet(context);
         ServletRegistration.Dynamic registration = servletContext.addServlet("planuni", servlet);
         registration.setLoadOnStartup(1);
-        registration.addMapping("/planuni/*");
+        registration.addMapping("/planuni/*","/planuni/**");
 
     }
 

@@ -1,4 +1,4 @@
-package dev.J;
+package dev.J.Entities;
 
 import jakarta.persistence.*;
 

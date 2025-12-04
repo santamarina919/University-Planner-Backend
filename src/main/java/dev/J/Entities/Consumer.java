@@ -1,27 +1,34 @@
-package dev.J;
+package dev.J.Entities;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.ws.rs.GET;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.NaturalId;
 
 import java.util.List;
 import java.util.UUID;
 
+@NoArgsConstructor
+@Getter
+@Setter
 @Entity
 public class Consumer {
     @Id @GeneratedValue
-    UUID id;
+    private UUID id;
 
     @NaturalId
-    String email;
+    private String email;
 
-    String password;
+    private String password;
 
-    String firstName;
+    private String firstName;
 
     @OneToMany
-    List<Plan> plans;
+    private List<Plan> plans;
 
 }
