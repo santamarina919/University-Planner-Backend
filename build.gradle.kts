@@ -30,9 +30,19 @@ dependencies {
     implementation("org.springframework:spring-webmvc:${springVersion}")
     implementation("jakarta.platform:jakarta.jakartaee-api:${jakaartaVersion}")
     implementation("org.eclipse:yasson:${yassonVersion}")
+    // https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind
+    implementation("tools.jackson.core:jackson-databind:3.0.3")
+
 
     implementation("org.hibernate.orm:hibernate-core:${hibernateVersion}.Final")
     annotationProcessor("org.hibernate.orm:hibernate-processor:${hibernateVersion}.Final")
+    implementation("org.hibernate.validator:hibernate-validator:9.0.1.Final")
+    implementation("org.glassfish.expressly:expressly:6.0.0")
+
+    compileOnly("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
+
+    implementation("org.postgresql:postgresql:42.7.8")
 
 }
 

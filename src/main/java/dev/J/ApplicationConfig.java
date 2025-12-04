@@ -6,8 +6,11 @@ import org.hibernate.jpa.HibernatePersistenceConfiguration;
 import org.hibernate.tool.schema.Action;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 @ComponentScan(basePackages = "dev.J")
+@Configuration
 public class ApplicationConfig {
 
     private static final String DATABASE_URL = "DATABASE_URL";
@@ -19,14 +22,15 @@ public class ApplicationConfig {
 
     @Bean
     SessionFactory sessionFactory(){
-        var factory = new HibernatePersistenceConfiguration("PlanUni")
+
+        var factory = new HibernatePersistenceConfiguration("planuni")
+                .managedClass(Campus.class)
                 .jdbcUrl(System.getenv(DATABASE_URL))
                 .jdbcCredentials(System.getenv(DATABASE_USERNAME),System.getenv(DATABASE_PASSWORD))
-                .schemaToolingAction(Action.CREATE_ONLY)
+                .schemaToolingAction(Action.CREATE)
                 .showSql(true,true,true)
                 .createEntityManagerFactory();
 
-        factory.getSchemaManager().create(true);
 
         return factory;
     }
