@@ -50,6 +50,10 @@ dependencies {
     // https://mvnrepository.com/artifact/org.mindrot/jbcrypt
     implementation("org.mindrot:jbcrypt:0.4")
 
+    implementation("org.springframework.security:spring-security-web")
+    implementation("org.springframework.security:spring-security-config")
+
+    implementation("ch.qos.logback:logback-classic:1.5.21")
 }
 
 dependencyManagement {

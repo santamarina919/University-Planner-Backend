@@ -1,16 +1,19 @@
-package dev.J;
+package dev.J.Config;
 
 
+import dev.J.ConsumerDetailsService;
 import dev.J.Entities.*;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.jpa.HibernatePersistenceConfiguration;
 import org.hibernate.tool.schema.Action;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
-@ComponentScan(basePackages = "dev.J")
 @Configuration
+@ComponentScan(basePackages = "dev.J.**")
 public class ApplicationConfig {
 
     private static final String DATABASE_URL = "DATABASE_URL";
@@ -35,5 +38,9 @@ public class ApplicationConfig {
         return factory;
     }
 
+    @Bean
+    UserDetailsService consumerDetailsService(SessionFactory factory){
+        return new ConsumerDetailsService(factory);
+    }
 
 }

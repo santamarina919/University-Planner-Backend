@@ -9,7 +9,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.NaturalId;
+import org.springframework.security.core.CredentialsContainer;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,7 +21,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-public class Consumer {
+public class Consumer implements UserDetails, CredentialsContainer {
     @Id @GeneratedValue
     private UUID id;
 
@@ -31,4 +35,18 @@ public class Consumer {
     @OneToMany
     private List<Plan> plans;
 
+    @Override
+    public void eraseCredentials() {
+        this.password = null;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
 }
