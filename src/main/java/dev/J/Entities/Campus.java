@@ -2,6 +2,7 @@ package dev.J.Entities;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.util.StringUtils;
 
 
 @Data
@@ -13,5 +14,10 @@ public class Campus {
 
     @Embedded
     Address address;
+
+    public String getName(){
+        String[] words = id.split("(?=\\p{Upper})");
+        return "California State University " + StringUtils.arrayToDelimitedString(words," ");
+    }
 
 }
