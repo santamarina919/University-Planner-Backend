@@ -23,3 +23,5 @@ INSERT INTO campus (id,streetNumber ,streetName,city,postalCode) VALUES ('Sonoma
 INSERT INTO campus (id,streetNumber ,streetName,city,postalCode) VALUES ('Stanislaus', '1', 'University Cir', 'Turlock',  '95382');
 
 
+INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  (gen_random_uuid(),null,'Computer Science','DominguezHills');
+INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  (gen_random_uuid(),null,'Gender Studies','DominguezHills');

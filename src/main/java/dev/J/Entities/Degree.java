@@ -15,7 +15,7 @@ public class Degree {
     @ManyToOne(optional = false,fetch = FetchType.LAZY)
     Campus owningCampus;
 
-    @OneToOne(optional = false,fetch = FetchType.LAZY)
+    @OneToOne(optional = true,fetch = FetchType.LAZY)
     Requirement rootRequirement;
 
 }

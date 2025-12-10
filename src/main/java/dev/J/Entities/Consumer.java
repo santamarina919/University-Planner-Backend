@@ -1,9 +1,6 @@
 package dev.J.Entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
 import jakarta.ws.rs.GET;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,7 +29,7 @@ public class Consumer implements UserDetails, CredentialsContainer {
 
     private String firstName;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.PERSIST,mappedBy = "consumer")
     private List<Plan> plans;
 
     @Override
