@@ -27,7 +27,7 @@ public class ApplicationConfig {
     SessionFactory sessionFactory(){
 
         var factory = new HibernatePersistenceConfiguration("planuni")
-                .managedClasses(Address.class,Campus.class, Consumer.class, Course.class, Degree.class,Plan.class, Prerequisite.class, Requirement.class)
+                .managedClasses(Address.class,Campus.class, Consumer.class, Course.class, Degree.class,Plan.class, Prerequisite.class, Requirement.class, PlannedCourse.class)
                 .jdbcUrl(System.getenv(DATABASE_URL))
                 .jdbcCredentials(System.getenv(DATABASE_USERNAME),System.getenv(DATABASE_PASSWORD))
                 .schemaToolingAction(Action.CREATE_DROP)

@@ -1,48 +1,49 @@
 package dev.J.Entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Getter
 @Entity
 public class Course {
 
     @Id @GeneratedValue(strategy = GenerationType.UUID)
-    UUID id;
+    private UUID id;
 
-    String courseId;
+    private String courseId;
 
-    String name;
+    private String name;
 
-    int units;
+    private int units;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    Campus owningCampus;
+    private Campus owningCampus;
 
     @OneToOne(optional = true, fetch = FetchType.LAZY)
-    Prerequisite rootPrerequisite;
+    private Prerequisite rootPrerequisite;
 
     @Nullable
-    private String subject = null;
-
+    private transient String subject = null;
     @Nullable
-    private String number = null;
+    private transient String number = null;
 
-    private static final Pattern p = Pattern.compile("[a-zA-z]+");
+    private static final Pattern p = Pattern.compile("[a-zA-Z]+");
 
     public Course(){}
 
 
-    public String subject(){
+    public String getSubject(){
         if(subject != null) return subject;
         parseCourseId();
         return subject;
     }
 
-    public String number() {
+    public String getNumber() {
         if(number != null) return number;
         parseCourseId();
         return number;
@@ -50,7 +51,10 @@ public class Course {
 
     private void parseCourseId(){
         Matcher matcher = p.matcher(courseId);
-        String subject = matcher.group();
+        System.out.println(courseId);
+        String subject;
+        if(matcher.find()) subject = matcher.group();
+        else throw new IllegalStateException("No matching course id");
         String number = courseId.substring(subject.length());
         this.subject = subject;
         this.number = number;

@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -16,14 +17,17 @@ import java.util.UUID;
 @Entity
 public class Plan {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
-    UUID id;
+    private UUID id;
 
-    String name;
+    private String name;
+
+    @OneToMany(mappedBy = "plan")
+    private Set<PlannedCourse> plannedCourses;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    Consumer consumer;
+    private Consumer consumer;
 
     @ManyToMany(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    List<Degree> rootDegrees = new ArrayList<>();
+    private List<Degree> rootDegrees = new ArrayList<>();
 
 }

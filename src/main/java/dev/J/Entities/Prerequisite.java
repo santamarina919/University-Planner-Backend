@@ -1,26 +1,28 @@
 package dev.J.Entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 
 import java.util.List;
 import java.util.UUID;
 
+@Getter
 @Entity
 public class Prerequisite {
 
     @Id @GeneratedValue(strategy = GenerationType.UUID)
-    UUID id;
+    private UUID id;
 
     @Enumerated(value = EnumType.STRING)
-    Type type;
+    private Type type;
 
     @OneToMany(fetch = FetchType.LAZY)
-    List<Prerequisite> childPrereqs;
+    private List<Prerequisite> childPrereqs;
 
     @ManyToOne
-    Prerequisite parentPrereq;
+    private Prerequisite parentPrereq;
 
     @JoinTable(name = "prerequisitecourse")
     @ManyToMany(fetch = FetchType.LAZY)
-    List<Course> childCourses;
+    private List<Course> childCourses;
 }

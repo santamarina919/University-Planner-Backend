@@ -23,5 +23,26 @@ INSERT INTO campus (id,streetNumber ,streetName,city,postalCode) VALUES ('Sonoma
 INSERT INTO campus (id,streetNumber ,streetName,city,postalCode) VALUES ('Stanislaus', '1', 'University Cir', 'Turlock',  '95382');
 
 
-INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  (gen_random_uuid(),null,'Computer Science','DominguezHills');
-INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  (gen_random_uuid(),null,'Gender Studies','DominguezHills');
+
+
+INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  ( '8df3c440-3d0d-4dd4-87be-56c1196c6942' ,null,'Computer Science','DominguezHills');
+INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  ('eb2c229c-ebe4-47c7-85e8-981f1ff596d4',null,'Gender Studies','DominguezHills');
+
+INSERT INTO requirement (id, owningdegree_id, parentrequirement_id, name, type) VALUES ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','8df3c440-3d0d-4dd4-87be-56c1196c6942',null,'Core Requirements','AND');
+
+UPDATE degree
+SET  rootrequirement_id = '8df3c440-3d0d-4dd4-87be-56c1196c6942'
+WHERE id = 'a4b3a79f-9cdd-45a8-8c4e-a782ab695101';
+
+INSERT INTO course (id,courseid,name,units,rootprerequisite_id,owningcampus_id) values ('3f971570-618a-40d8-9e61-b4f5455de6d3','CSC101','Intro to learning nothing',3,null,'DominguezHills');
+INSERT INTO course (id,courseid,name,units,rootprerequisite_id,owningcampus_id) values ('8b60bb7f-ff90-42b6-b349-e02b8b6fe2a7','CSC103','Intro to learning useless facts',3,null,'DominguezHills');
+
+INSERT INTO prerequisite (id, parentprereq_id, type) VALUES ('503ba096-48cb-4836-a47e-42c7eafe3d16',null,'OR');
+
+INSERT INTO course (id,courseid,name,units,rootprerequisite_id,owningcampus_id) values  ('ef89b95f-afb3-414c-8df7-202c62b5f8eb','CSC121','Java programming',5,'503ba096-48cb-4836-a47e-42c7eafe3d16','DominguezHills');
+
+insert into prerequisitecourse (prerequisite_id, childcourses_id) VALUES ('503ba096-48cb-4836-a47e-42c7eafe3d16','3f971570-618a-40d8-9e61-b4f5455de6d3');
+insert into prerequisitecourse (prerequisite_id, childcourses_id) VALUES ('503ba096-48cb-4836-a47e-42c7eafe3d16','8b60bb7f-ff90-42b6-b349-e02b8b6fe2a7');
+
+INSERT INTO requirementcourse (requirement_id, leafcourses_id) values ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','3f971570-618a-40d8-9e61-b4f5455de6d3');
+INSERT INTO requirementcourse (requirement_id, leafcourses_id) values ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','ef89b95f-afb3-414c-8df7-202c62b5f8eb');
