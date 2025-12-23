@@ -8,6 +8,7 @@ import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -25,6 +26,7 @@ public class PlannedCourse {
     @ManyToOne
     private Course course;
 
+    @NonNull
     @Column(nullable = false)
     private Integer semesterPlanned;
 

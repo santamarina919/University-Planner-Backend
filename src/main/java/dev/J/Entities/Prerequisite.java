@@ -2,6 +2,7 @@ package dev.J.Entities;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,10 @@ public class Prerequisite {
 
     @ManyToOne
     private Prerequisite parentPrereq;
+
+    @Nullable
+    @OneToOne(mappedBy = "rootPrerequisite")
+    private Course parentCourse;
 
     @JoinTable(name = "prerequisitecourse")
     @ManyToMany(fetch = FetchType.LAZY)

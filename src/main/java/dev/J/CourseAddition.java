@@ -82,7 +82,7 @@ public class CourseAddition {
         return semesterCompleted;
     }
 
-    private static int validateOrNode(Prerequisite rootPrerequisite, Map<Course, Integer> semesterPlannedMap, int semesterToInsertTo) {
+    public static int validateOrNode(Prerequisite rootPrerequisite, Map<Course, Integer> semesterPlannedMap, int semesterToInsertTo) {
         assert rootPrerequisite.getType() == Type.OR;
 
         boolean noneCompletedFlag = true;

@@ -4,6 +4,9 @@ import dev.J.Entities.*;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.POST;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.hibernate.SessionFactory;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.ext.jdk8.BaseScalarOptionalDeserializer;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,15 +46,15 @@ public class SchedulerEndpoint {
     }
 
     @GetMapping("/scheduler/universities/degrees")
-    public List<Degree> allDegrees(InputStream inputStream) {
+    public List<Degree> allDegrees() {
         return supportedUniversities.stream()
                 .map(this::fetchDegrees)
                 .flatMap(List::stream)
                 .toList();
     }
 
-    @GetMapping("/scheduler/universities/degrees/{campusId}")
-    public List<Degree> degreesFrom(@PathVariable String campusId){
+    @GetMapping("/scheduler/universities/degreesOf")
+    public List<Degree> degreesFrom(@RequestParam("campusId") String campusId){
         return fetchDegrees(campusId);
     }
 
@@ -100,19 +104,64 @@ public class SchedulerEndpoint {
             Consumer owner = session.bySimpleNaturalId(Consumer.class).getReference(details.getUsername());
 
 
-            List<Degree> degrees = body.degreeIds.stream()
-                    .map(id -> session.find(Degree.class,id))
-                    .toList();
 
             Plan p = new Plan();
             p.setConsumer(owner);
             p.setName(body.name);
+            List<PlanDegrees> degrees = body.degreeIds.stream()
+                    .map(id -> session.find(Degree.class,id))
+                    .map(degree -> new PlanDegrees(p,degree))
+                    .toList();
             p.getRootDegrees().addAll(degrees);
             session.persist(p);
             return p.getId();
         });
         return planId;
     }
+
+    public record PlanDetails(UUID id, String name, LocalDate creationDate,Campus campus){}
+
+    @GetMapping("/scheduler/plans/myplans")
+    public List<PlanDetails> allPlansFromUser(Authentication auth){
+        Consumer user = (Consumer) auth.getPrincipal();
+        assert user != null;
+        return this.sessionFactory
+                .fromTransaction(session ->
+                        session.createQuery(
+                                "select new dev.J.SchedulerEndpoint$PlanDetails(p.id,p.name,p.creationDate,c) " +
+                                        "from Plan p " +
+                                        "inner join PlanDegrees pd on p.id = pd.parentPlan.id " +
+                                        "inner join Degree d on pd.childDegree.id = d.id " +
+                                        "inner join Campus c on d.owningCampus.id = c.id " +
+                                        "where p.consumer.id = :owner",
+                                        PlanDetails.class)
+                                .setParameter("owner",user.getId())
+                                .getResultList()
+                );
+    }
+
+    public record DegreeDTO(UUID id, String name){}
+
+    @GetMapping("/scheduler/plans/childdegrees")
+    public List<DegreeDTO> degreesOfPlan(Authentication auth, @RequestParam("planId") UUID planId){
+        Consumer c = (Consumer)auth.getPrincipal();
+        assert c != null;
+        return this.sessionFactory.fromSession(session ->
+                session.createQuery(
+                        "select new DegreeDTO(d.id,d.name) " +
+                                "from Plan p " +
+                                "inner join PlanDegrees pd on p.id = pd.parentPlan.id " +
+                                "inner join Degree d on pd.childDegree.id = d.id " +
+                                "where pd.id.parentPlan.id = :planId",
+                                DegreeDTO.class
+                        )
+                        .setParameter("planId",planId)
+                        .getResultList()
+        );
+
+    }
+
+
     //todo init plan endpoints
     //todo courses states
 
@@ -123,10 +172,11 @@ public class SchedulerEndpoint {
         boolean wasSuccessFull = sessionFactory.fromTransaction(session -> CourseAddition.addCourse(session,planId,courseId,semester));
         return wasSuccessFull ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
-    //todo remove courses
+    //right now this method will fail
+    //todo test and verify this method works
     @GetMapping("/scheduler/plans/remove")
-    public void removeCourse(@RequestParam String planId, @RequestParam String courseId){
-
+    public void removeCourse(@RequestParam UUID planId, @RequestParam UUID courseId){
+        this.sessionFactory.fromTransaction(session -> CourseRemoval.removeCourse(session,planId,courseId));
     }
 
 }
