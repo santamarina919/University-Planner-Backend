@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 @Entity
-public class PlanDegrees {
+public class PlanDegree {
 
     @Id
     @ManyToOne

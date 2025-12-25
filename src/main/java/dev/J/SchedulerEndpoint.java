@@ -1,12 +1,6 @@
 package dev.J;
 
 import dev.J.Entities.*;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
-import jakarta.ws.rs.POST;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.hibernate.SessionFactory;
@@ -14,15 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.ott.DefaultGenerateOneTimeTokenRequestResolver;
 import org.springframework.web.bind.annotation.*;
-import tools.jackson.databind.ext.jdk8.BaseScalarOptionalDeserializer;
 
-import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @RestController
@@ -108,9 +98,9 @@ public class SchedulerEndpoint {
             Plan p = new Plan();
             p.setConsumer(owner);
             p.setName(body.name);
-            List<PlanDegrees> degrees = body.degreeIds.stream()
+            List<PlanDegree> degrees = body.degreeIds.stream()
                     .map(id -> session.find(Degree.class,id))
-                    .map(degree -> new PlanDegrees(p,degree))
+                    .map(degree -> new PlanDegree(p,degree))
                     .toList();
             p.getRootDegrees().addAll(degrees);
             session.persist(p);
@@ -130,7 +120,7 @@ public class SchedulerEndpoint {
                         session.createQuery(
                                 "select new dev.J.SchedulerEndpoint$PlanDetails(p.id,p.name,p.creationDate,c) " +
                                         "from Plan p " +
-                                        "inner join PlanDegrees pd on p.id = pd.parentPlan.id " +
+                                        "inner join PlanDegree pd on p.id = pd.parentPlan.id " +
                                         "inner join Degree d on pd.childDegree.id = d.id " +
                                         "inner join Campus c on d.owningCampus.id = c.id " +
                                         "where p.consumer.id = :owner",
@@ -150,7 +140,7 @@ public class SchedulerEndpoint {
                 session.createQuery(
                         "select new DegreeDTO(d.id,d.name) " +
                                 "from Plan p " +
-                                "inner join PlanDegrees pd on p.id = pd.parentPlan.id " +
+                                "inner join PlanDegree pd on p.id = pd.parentPlan.id " +
                                 "inner join Degree d on pd.childDegree.id = d.id " +
                                 "where pd.id.parentPlan.id = :planId",
                                 DegreeDTO.class
@@ -177,6 +167,13 @@ public class SchedulerEndpoint {
     @GetMapping("/scheduler/plans/remove")
     public void removeCourse(@RequestParam UUID planId, @RequestParam UUID courseId){
         this.sessionFactory.fromTransaction(session -> CourseRemoval.removeCourse(session,planId,courseId));
+    }
+
+    @GetMapping("/scheduler/plans/course-states")
+    public List<CourseStateFunction.CourseState> courseStatesOf(@RequestParam("planId") UUID planId, Authentication auth){
+        Consumer c = (Consumer) auth.getPrincipal();
+        assert c != null : "Could not case Authentication obj to Consumer class";
+        return this.sessionFactory.fromTransaction(session -> CourseStateFunction.getStates(session,planId));
     }
 
 }

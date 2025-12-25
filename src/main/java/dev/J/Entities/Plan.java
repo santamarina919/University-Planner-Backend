@@ -1,18 +1,13 @@
 package dev.J.Entities;
 
 import jakarta.persistence.*;
-import jakarta.persistence.criteria.Root;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 @Setter
@@ -38,6 +33,12 @@ public class Plan {
             mappedBy = "parentPlan",
             cascade = {CascadeType.MERGE, CascadeType.PERSIST}
     )
-    private List<PlanDegrees> rootDegrees = new ArrayList<>();
+    private List<PlanDegree> rootDegrees = new ArrayList<>();
+
+    public Map<Course,PlannedCourse> plannedCoursesAsMap() {
+        HashMap<Course,PlannedCourse> map = new HashMap<>();
+        this.plannedCourses.forEach(plannedCourse -> map.put(plannedCourse.getCourse(),plannedCourse));
+        return map;
+    }
 
 }

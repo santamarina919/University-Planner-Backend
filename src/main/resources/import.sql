@@ -27,12 +27,9 @@ INSERT INTO campus (id,streetNumber ,streetName,city,postalCode) VALUES ('Stanis
 
 INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  ( '8df3c440-3d0d-4dd4-87be-56c1196c6942' ,null,'Computer Science','DominguezHills');
 INSERT INTO degree (id, rootrequirement_id, name, owningcampus_id) VALUES  ('eb2c229c-ebe4-47c7-85e8-981f1ff596d4',null,'Gender Studies','DominguezHills');
-
 INSERT INTO requirement (id, owningdegree_id, parentrequirement_id, name, type) VALUES ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','8df3c440-3d0d-4dd4-87be-56c1196c6942',null,'Core Requirements','AND');
 
-UPDATE degree
-SET  rootrequirement_id = '8df3c440-3d0d-4dd4-87be-56c1196c6942'
-WHERE id = 'a4b3a79f-9cdd-45a8-8c4e-a782ab695101';
+UPDATE degree SET  rootrequirement_id = 'a4b3a79f-9cdd-45a8-8c4e-a782ab695101' WHERE id = '8df3c440-3d0d-4dd4-87be-56c1196c6942';
 
 INSERT INTO course (id,courseid,name,units,rootprerequisite_id,owningcampus_id) values ('3f971570-618a-40d8-9e61-b4f5455de6d3','CSC101','Intro to learning nothing',3,null,'DominguezHills');
 INSERT INTO course (id,courseid,name,units,rootprerequisite_id,owningcampus_id) values ('8b60bb7f-ff90-42b6-b349-e02b8b6fe2a7','CSC103','Intro to learning useless facts',3,null,'DominguezHills');

@@ -1,5 +1,6 @@
 package dev.J.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.ws.rs.GET;
@@ -7,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.UUID;
 @Getter
 @AllArgsConstructor
@@ -19,6 +21,11 @@ public class Degree {
     UUID id;
 
     String name;
+
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "childDegree")
+    List<PlanDegree> plansWithDegree;
 
     @ManyToOne(optional = false,fetch = FetchType.LAZY)
     Campus owningCampus;
