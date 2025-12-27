@@ -60,6 +60,9 @@ public class Course {
         this.number = number;
     }
 
-
+    @Override
+    public int hashCode(){
+        return this.id.hashCode();
+    }
 
 }
