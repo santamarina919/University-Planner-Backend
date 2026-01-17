@@ -43,3 +43,5 @@ insert into prerequisitecourse (prerequisite_id, childcourses_id) VALUES ('503ba
 
 INSERT INTO requirementcourse (requirement_id, leafcourses_id) values ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','3f971570-618a-40d8-9e61-b4f5455de6d3');
 INSERT INTO requirementcourse (requirement_id, leafcourses_id) values ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','ef89b95f-afb3-414c-8df7-202c62b5f8eb');
+INSERT INTO requirementcourse (requirement_id, leafcourses_id) values ('a4b3a79f-9cdd-45a8-8c4e-a782ab695101','8b60bb7f-ff90-42b6-b349-e02b8b6fe2a7');
+

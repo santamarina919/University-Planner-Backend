@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class CourseStateFunction {
-    public record CourseState(UUID id, String courseId, String name, int units, boolean isCompleted,
+    public record CourseState(UUID id, String courseId, String name, int units,
                               @Nullable Integer firstSemesterPlannable, @Nullable Integer semesterPlanned) {
     }
 
@@ -57,8 +57,7 @@ public class CourseStateFunction {
                 currentCourse.getCourseId(),
                 currentCourse.getName(),
                 currentCourse.getUnits(),
-                semesterPlanned != null  ,
-                firstSemeterAvail == Prerequisite.NOT_COMPLETED ? null : firstSemeterAvail,
+                firstSemeterAvail == Prerequisite.NOT_COMPLETED ? null : firstSemeterAvail + 1,
                 semesterPlanned);
     }
 

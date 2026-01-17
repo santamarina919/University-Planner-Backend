@@ -22,7 +22,7 @@ public class Plan {
     @CreationTimestamp
     private LocalDate creationDate;
 
-    @OneToMany(mappedBy = "plan")
+    @OneToMany(mappedBy = "plan",cascade = CascadeType.REMOVE)
     private Set<PlannedCourse> plannedCourses;
 
     @ManyToOne(fetch = FetchType.LAZY)

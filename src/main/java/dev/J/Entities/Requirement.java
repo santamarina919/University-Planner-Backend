@@ -1,6 +1,7 @@
 package dev.J.Entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import java.io.NotSerializableException;

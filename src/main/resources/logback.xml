@@ -10,6 +10,9 @@
     <logger name="org.springframework.web.cors" level="trace" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
+    <logger name="org.springframework.web.servlet" level="trace" additivity="false">
+        <appender-ref ref="STDOUT" />
+    </logger>
 <!--    <root level="trace">-->
 <!--        <appender-ref ref="STDOUT" />-->
 <!--    </root>-->

@@ -47,6 +47,8 @@ public class Prerequisite {
         }
         else{
             if(leafNodeCompleted == NOT_COMPLETED && childNodesCompleted == NOT_COMPLETED)return NOT_COMPLETED;
+            else if(leafNodeCompleted == NOT_COMPLETED) return childNodesCompleted;
+            else if(childNodesCompleted == NOT_COMPLETED) return leafNodeCompleted;
             else return Math.min(leafNodeCompleted,childNodesCompleted);
         }
     }
@@ -127,6 +129,15 @@ public class Prerequisite {
         }
         if(noneCompleted) return NOT_COMPLETED;
         return smallestSemester;
+    }
+
+    public Course findParentCourse(){
+        Prerequisite currP = this;
+        while(currP.getParentPrereq() != null){
+            currP = currP.getParentPrereq();
+        }
+        assert  currP.getParentCourse() != null;
+        return currP.getParentCourse();
     }
 
 }

@@ -5,167 +5,90 @@ import org.hibernate.Session;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class CourseRemoval {
 
-    private static List<Course> coursesToBeRemoved;
+    public static List<CourseStateChange> removeCourse(Session session, UUID planId, UUID surrogateCourseId){
 
-    private static String errorString;
-
-    public static boolean removeCourse(Session session, UUID planId, UUID surrogateCourseId){
         Plan p = session.find(Plan.class,planId);
-        Set<PlannedCourse> plannedCourses = p.getPlannedCourses();
-        HashMap<Course,Integer> semesterCompleted = new HashMap<>();
-        plannedCourses.forEach(plannedCourse -> semesterCompleted.put(plannedCourse.getCourse(),plannedCourse.getSemesterPlanned()));
+        Map<Course, PlannedCourse> completedCourses = p.plannedCoursesAsMap();
 
         Course courseToBeRemoved = session.find(Course.class,surrogateCourseId);
 
-        boolean alreadyPlanned = session.createQuery(
-                "from PlannedCourse p " +
-                        "where p.plan.id = :planId and " +
-                        "p.course.id = :surrogateCourseId",
-                        PlannedCourse.class
-                )
-                .setParameter(":planId",planId)
-                .setParameter(":surrogateCourseId",surrogateCourseId)
-                .getResultCount() == 1;
-        if(alreadyPlanned){
-            return false;
+        if(!completedCourses.containsKey(courseToBeRemoved)){
+            //cannot remove a course that is not planned
+            return Collections.emptyList();
         }
 
-        List<Prerequisite> affectedPrerequisites = session.createQuery(
-                        "from Prerequisite p " +
-                                "where :toBeRemovedId in p.childCourses",
-                        Prerequisite.class
-                )
-                .setParameter(":toBeRemoved",courseToBeRemoved.getCourseId())
-                .getResultList();
+        PlannedCourse enrollmentRecord = completedCourses.get(courseToBeRemoved);
+        session.remove(enrollmentRecord);
+        p.getPlannedCourses().remove(enrollmentRecord);
 
-
-        if(affectedPrerequisites.isEmpty()){
-            coursesToBeRemoved = List.of(courseToBeRemoved);
-        }
-        else{
-            coursesToBeRemoved = removalAllAffectedCourses(plannedCourses,courseToBeRemoved,new ArrayList<>(),semesterCompleted,session);
-        }
-        return true;
+        return removalAllAffectedCourses(completedCourses,courseToBeRemoved,session);
     }
 
-    private static List<Course> removalAllAffectedCourses(Set<PlannedCourse> plannedCourses,
+    private static List<CourseStateChange> removalAllAffectedCourses(Map<Course, PlannedCourse>  plannedCourses,
                                                           Course originalCourse,
-                                                          ArrayList<Course> coursesToBeRemoved,
-                                                          HashMap<Course,Integer> semesterPlanned,
                                                           Session session) {
+        List<Course> removedCoursesList = new ArrayList<>();
         Deque<Course> q = new LinkedList<>();
         q.add(originalCourse);
 
         while(!q.isEmpty()) {
-            Course toBeRemoved = q.poll();
-            coursesToBeRemoved.add(toBeRemoved);
-            List<Prerequisite> affectedPrerequisites = session.createQuery(
-                            "from Prerequisite p " +
-                                    "where :toBeRemovedId in p.childCourses",
-                            Prerequisite.class
-                    )
-                    .setParameter(":toBeRemoved",toBeRemoved.getCourseId())
-                    .getResultList();
+            Course currentCourse = q.poll();
+            removedCoursesList.add(currentCourse);
+            List<Prerequisite> affectedPrerequisites = findAffectedPrerequisites(session, currentCourse);
 
-            List<Course> newlyRemoved = affectedPrerequisites
+            List<Course> nextToBeRemoved = affectedPrerequisites
                     .stream()
-                    .map(prereq -> traverseAffectedPrereq(prereq,semesterPlanned))
+                    .map(prereq -> plannedCourses.get(updatePossiblyPlannableCourses(prereq,plannedCourses,session,removedCoursesList)))
                     .filter(Objects::nonNull)
+                    .map(PlannedCourse::getCourse)
                     .toList();
 
-            q.addAll(newlyRemoved);
-
+            q.addAll(nextToBeRemoved);
         }
 
-
-        return coursesToBeRemoved;
+        List<CourseStateChange> stateChanges = new ArrayList<>();
+        stateChanges.add(new CourseStateChange(removedCoursesList.get(0).getId(),CourseStateChange.DO_NOT_RESET_FLAG,CourseStateChange.RESET_FLAG));
+        for(Course removed : removedCoursesList.subList(1,removedCoursesList.size())){
+            if(removed.getRootPrerequisite() == null)
+                stateChanges.add(CourseStateChange.resetToInitiallyAvailable(removed.getId()));
+            else
+                stateChanges.add(CourseStateChange.resetState(removed.getId()));
+        }
+        return stateChanges;
     }
 
-    /**
-     * Call this function on a prerequisite p when a previously completed course is removed. While traverse up tree and return
-     * the course that is no longer complete as a result or null if it is still complete
-     * @param p
-     * @return
-     */
-    private static @Nullable Course traverseAffectedPrereq(Prerequisite p, HashMap<Course,Integer> semesterPlanned){
-        Prerequisite prev = p;
-        Prerequisite curr = p;
-        while(curr != null){
-            if(curr.getType() == Type.AND){
-                prev = curr;
-                curr = curr.getParentPrereq();
-            }
-            //Or node
-            else {
-                OptionalInt newSemesterCompleted = revalidateOrNode(p,semesterPlanned);
-                if(newSemesterCompleted.isPresent()){
-                    //new semester completed available via newSemesterCompleted.getAsInt()
-                    return null;
-                }
-                else {
-                    prev = curr;
-                    curr = curr.getParentPrereq();
-                }
-            }
-        }
-        return prev.getParentCourse();
+    private static List<Prerequisite> findAffectedPrerequisites(Session session, Course currentCourse) {
+        var pList =  session.createQuery(
+                  "from Prerequisite p " +
+                            "inner join p.childCourses courses " +
+                            "where courses.id = :toBeRemoved",
+                        Prerequisite.class
+                )
+                .setParameter("toBeRemoved", currentCourse.getId())
+                .getResultList();
+        return pList;
     }
 
-    private static OptionalInt revalidateOrNode(Prerequisite rootNode,HashMap<Course,Integer> plannedCourses){
-        OptionalInt earliestCompletedCourse = rootNode.getChildCourses().stream().filter(plannedCourses::containsKey)
-                .mapToInt(plannedCourses::get)
-                .min();
 
-        OptionalInt earliestCompletedChildPrereq = rootNode.getChildPrereqs().stream()
-                .map(prerequisite -> prerequisite.getType() == Type.AND ? revalidateAndNode(prerequisite,plannedCourses) : revalidateOrNode(prerequisite,plannedCourses))
-                .filter(semester -> semester.isPresent())
-                .mapToInt(OptionalInt::getAsInt)
-                .min();
-        if(earliestCompletedChildPrereq.isPresent() && earliestCompletedCourse.isPresent()){
-            return earliestCompletedCourse.getAsInt() < earliestCompletedChildPrereq.getAsInt() ? earliestCompletedCourse : earliestCompletedChildPrereq;
-        }
-        else if(earliestCompletedChildPrereq.isPresent()){
-            return earliestCompletedChildPrereq;
-        }
-        else {
-            return earliestCompletedCourse;
-        }
+    private static Course updatePossiblyPlannableCourses(Prerequisite startNode, Map<Course, PlannedCourse> plannedCourses, Session session, List<Course> notAvailableCourseList){
+        Course c = startNode.findParentCourse();
 
+        if(plannedCourses.containsKey(c)){
+            return c;
+        }
+        notAvailableCourseList.add(c);
+        findAffectedPrerequisites(session,c)
+                .stream()
+                .map(Prerequisite::findParentCourse)
+                .forEach(notAvailableCourseList::add);
+
+        return c;
     }
 
 
 
-    private static OptionalInt revalidateAndNode(Prerequisite rootNode, HashMap<Course,Integer> plannedCourses){
-        boolean allCompleted = rootNode.getChildCourses().stream().allMatch(plannedCourses::containsKey);
-        if(!allCompleted){
-            return OptionalInt.empty();
-        }
-        OptionalInt largestSemeter = rootNode.getChildCourses().stream()
-                .mapToInt(plannedCourses::get)
-                .max();
-
-        List<OptionalInt> semesterPrereqCompleted = rootNode.getChildPrereqs().stream()
-                .map(prereq -> prereq.getType() == Type.OR ? revalidateOrNode(prereq,plannedCourses) : revalidateAndNode(prereq,plannedCourses))
-                .toList();
-
-        if(semesterPrereqCompleted.stream().anyMatch(OptionalInt::isEmpty)){
-            return OptionalInt.empty();
-        }
-
-        OptionalInt largestSemesterPrereqCompl = semesterPrereqCompleted.stream().mapToInt(OptionalInt::getAsInt)
-                .max();
-
-        if(largestSemeter.isPresent() && largestSemesterPrereqCompl.isPresent()){
-            return largestSemeter.getAsInt() > largestSemesterPrereqCompl.getAsInt() ? largestSemeter : largestSemesterPrereqCompl;
-        }
-        else if(largestSemeter.isPresent()) {
-            return largestSemeter;
-        }
-        else{
-            return largestSemesterPrereqCompl;
-        }
-    }
 }

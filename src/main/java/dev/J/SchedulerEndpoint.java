@@ -1,18 +1,16 @@
 package dev.J;
 
 import dev.J.Entities.*;
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.hibernate.SessionFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @RequiredArgsConstructor
 @RestController
@@ -109,8 +107,6 @@ public class SchedulerEndpoint {
         return planId;
     }
 
-    public record PlanDetails(UUID id, String name, LocalDate creationDate,Campus campus){}
-
     @GetMapping("/scheduler/plans/myplans")
     public List<PlanDetails> allPlansFromUser(Authentication auth){
         Consumer user = (Consumer) auth.getPrincipal();
@@ -118,7 +114,7 @@ public class SchedulerEndpoint {
         return this.sessionFactory
                 .fromTransaction(session ->
                         session.createQuery(
-                                "select new dev.J.SchedulerEndpoint$PlanDetails(p.id,p.name,p.creationDate,c) " +
+                                "select new dev.J.PlanDetails(p.id,p.name,p.creationDate,c) " +
                                         "from Plan p " +
                                         "inner join PlanDegree pd on p.id = pd.parentPlan.id " +
                                         "inner join Degree d on pd.childDegree.id = d.id " +
@@ -155,19 +151,37 @@ public class SchedulerEndpoint {
     //todo init plan endpoints
     //todo courses states
 
+    public record StateChanges(@Nullable List<CourseStateChange> courseStateChanges){}
 
-    //todo add courses
-    @PostMapping("/scheduler/plans/add")
-    public ResponseEntity<Void> addCourse(@RequestParam("planId") UUID planId, @RequestParam("courseId") UUID courseId, @RequestParam("semester") int semester){
-        boolean wasSuccessFull = sessionFactory.fromTransaction(session -> CourseAddition.addCourse(session,planId,courseId,semester));
-        return wasSuccessFull ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+
+    //mutates state of plan
+    @PostMapping("/scheduler/plans/{planId}/add")
+    public StateChanges addCourse(
+            @PathVariable("planId") UUID planId,
+            @RequestParam("courseId") UUID courseId,
+            @RequestParam("semester") int semester,
+            @Nullable @RequestBody List<CourseStateChange> withState
+    ){
+        if(withState != null){
+            applyStateToPlan(planId,withState);
+        }
+        List<CourseStateChange> courseStateChanges = sessionFactory.fromTransaction(session -> CourseAddition.addCourse(session,planId,courseId,semester));
+        return new StateChanges(courseStateChanges);
     }
-    //right now this method will fail
-    //todo test and verify this method works
-    @GetMapping("/scheduler/plans/remove")
-    public void removeCourse(@RequestParam UUID planId, @RequestParam UUID courseId){
-        this.sessionFactory.fromTransaction(session -> CourseRemoval.removeCourse(session,planId,courseId));
+    //mutates state of plan
+    @PostMapping("/scheduler/plans/{planId}/remove")
+    public StateChanges removeCourse(
+            @PathVariable("planId") UUID planId,
+            @RequestParam("courseId") UUID courseId,
+            @Nullable @RequestBody List<CourseStateChange> withState
+    ){
+        if(withState != null){
+            applyStateToPlan(planId,withState);
+        }
+        var courseStateChanges = this.sessionFactory.fromTransaction(session -> CourseRemoval.removeCourse(session,planId,courseId));
+        return new StateChanges(courseStateChanges);
     }
+
 
     @GetMapping("/scheduler/plans/course-states")
     public List<CourseStateFunction.CourseState> courseStatesOf(@RequestParam("planId") UUID planId, Authentication auth){
@@ -175,5 +189,54 @@ public class SchedulerEndpoint {
         assert c != null : "Could not case Authentication obj to Consumer class";
         return this.sessionFactory.fromTransaction(session -> CourseStateFunction.getStates(session,planId));
     }
+
+    @PostMapping("/scheduler/plans/applystate")
+    public void applyStateToPlanEndpoint(@RequestParam("planId") UUID planId, @RequestBody List<CourseStateChange> statesToApply){
+        applyStateToPlan(planId, statesToApply);
+
+
+    }
+
+    private void applyStateToPlan(UUID planId, List<CourseStateChange> statesToApply) {
+        Map<UUID, CourseStateChange> stateChanges = new HashMap<>();
+        statesToApply.forEach(newState -> {
+            stateChanges.put(newState.id(),newState);
+        });
+
+        sessionFactory.inTransaction(session -> {
+            Plan p = session.find(Plan.class, planId);
+
+            p.getPlannedCourses().forEach(record -> {
+                Course course = record.getCourse();
+                if(stateChanges.containsKey(course.getId())){
+                    record.setSemesterPlanned(stateChanges.get(course.getId()).semesterPlanned());
+                }
+                else {
+                    session.remove(record);
+                }
+            });
+        });
+    }
+
+    @PostMapping("/scheduler/plans/reset")
+    public List<CourseStateChange> resetPlanState(@RequestParam("planId") UUID planId){
+        List<CourseStateChange> initialCourses = new ArrayList<>();
+        this.sessionFactory.inTransaction(session -> {
+            Plan p = session.find(Plan.class,planId);
+            p.getPlannedCourses().forEach(record -> {
+                Course c = record.getCourse();
+                if(c.getRootPrerequisite() == null){
+                    initialCourses.add(CourseStateChange.resetToInitiallyAvailable(c.getId()));
+                }
+                else {
+                    initialCourses.add(CourseStateChange.resetState(c.getId()));
+                }
+                session.remove(record);
+            });
+        });
+        return initialCourses;
+    }
+
+
 
 }
