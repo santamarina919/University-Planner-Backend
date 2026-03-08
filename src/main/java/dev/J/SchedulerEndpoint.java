@@ -1,9 +1,9 @@
 package dev.J;
 
 import dev.J.Entities.*;
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.Authentication;
@@ -33,8 +33,10 @@ public class SchedulerEndpoint {
                 .toList();
     }
 
+    public record SimpleDegreeDTO(UUID id,String name,Campus owningCampus){}
+
     @GetMapping("/scheduler/universities/degrees")
-    public List<Degree> allDegrees() {
+    public List<SimpleDegreeDTO> allDegrees() {
         return supportedUniversities.stream()
                 .map(this::fetchDegrees)
                 .flatMap(List::stream)
@@ -42,30 +44,38 @@ public class SchedulerEndpoint {
     }
 
     @GetMapping("/scheduler/universities/degreesOf")
-    public List<Degree> degreesFrom(@RequestParam("campusId") String campusId){
+    public List<SimpleDegreeDTO> degreesFrom(@RequestParam("campusId") String campusId){
         return fetchDegrees(campusId);
     }
 
 
-    public List<Degree> fetchDegrees(String campusId) {
+    public List<SimpleDegreeDTO> fetchDegrees(String campusId) {
        return this.sessionFactory.fromTransaction(session ->
                    session
                            .createQuery(
-                                "SELECT d " +
+                                "SELECT new dev.J.SchedulerEndpoint$SimpleDegreeDTO(d.id,d.name,d.owningCampus) " +
                                 "FROM Degree d " +
                                 "WHERE d.owningCampus.id = :campusId ",
-                                Degree.class
+                                SimpleDegreeDTO.class
                            )
                            .setParameter("campusId", campusId)
-                           .stream().map(degree -> {
-                               degree = session.merge(degree);
-                               Hibernate.initialize(degree.getOwningCampus());
-                               return degree;
-                           })
-                           .toList());
+                           .getResultList());
     }
 
     public record CourseDTO(UUID id, String courseId, String name, int units, String campusId){}
+
+    @GetMapping("/scheduler/degrees/{degreeId}")
+    public EnummeratedDegree degreeData(@PathVariable("degreeId") UUID degreeId){
+        return sessionFactory.fromSession((session) ->
+            fetchDegreeData(session,degreeId));
+    }
+
+    private EnummeratedDegree fetchDegreeData(Session session, UUID degreeId) {
+        Degree degree = session.find(Degree.class,degreeId);
+        EnummeratedDegree enummeratedDegree = new EnummeratedDegree(degreeId,degree.getName(),EnumeratedRequirement.of(degree.getRootRequirement()),degree.getOwningCampus());
+        Hibernate.initialize(enummeratedDegree.owningCampus());
+        return enummeratedDegree;
+    }
 
     @GetMapping("/scheduler/universities/allcourses")
     public List<CourseDTO> courses(){
@@ -238,5 +248,64 @@ public class SchedulerEndpoint {
     }
 
 
+    @GetMapping("/scheduler/{planId}/requirement-structure")
+    public List<DegreeSchematic> fetchRequirementState(@PathVariable("planId") UUID planId){
+        return sessionFactory.fromSession(session -> {
+            Plan p = session.find(Plan.class,planId);
+            return RequirementSchematicFunction.fetchRequirementSchematic(session,p);
+        });
+    }
+
+    public record CampusDegreeDetails(Campus campus, List<DegreeDTO> degree){}
+
+    @GetMapping("/scheduler/campus/{campusId}")
+    public Object campusDetails(@PathVariable("campusId") String campusId){
+        return this.sessionFactory.fromTransaction(session -> {
+           Campus c = session.find(Campus.class,campusId);
+
+           List<DegreeDTO> degrees = session.createQuery(
+                   "select new dev.J.SchedulerEndpoint$DegreeDTO(d.id,d.name) " +
+                           "from Degree d " +
+                           "where d.owningCampus.id = :campusId",
+                    DegreeDTO.class
+                   )
+                   .setParameter("campusId",campusId)
+                   .getResultList();
+
+           return new CampusDegreeDetails(c,degrees);
+
+        });
+
+    }
+
+    public record PrerequisiteDetails(UUID id, Type type, List<PrerequisiteDetails> children, List<CourseDTO> leafCourses){
+        public static @Nullable PrerequisiteDetails of(@Nullable Prerequisite p){
+            if(p == null){
+                return null;
+            }
+            var childPrereqs = p.getChildPrereqs().stream()
+                    .map(prereq -> PrerequisiteDetails.of(prereq))
+                    .toList();
+
+            var leafCourses = p.getChildCourses()
+                    .stream()
+                    .map(course -> new CourseDTO(course.getId(),course.getCourseId(),course.getName(),course.getUnits(),course.getOwningCampus().getId()))
+                    .toList();
+            return new PrerequisiteDetails(p.getId(),p.getType(),childPrereqs,leafCourses);
+        }
+    }
+
+    public record CourseDetails(UUID surrogateId, String courseId,String name, int units,Campus owningCampus,PrerequisiteDetails rootPrereq){}
+
+
+    @GetMapping("/scheduler/course/{courseId}")
+    public Object courseDetails(@PathVariable("courseId") UUID surrogateId){
+        return sessionFactory.fromTransaction(session -> {
+            Course c = session.find(Course.class,surrogateId);
+            CourseDetails details = new CourseDetails(c.getId(),c.getCourseId(),c.getName(),c.getUnits(),c.getOwningCampus(),PrerequisiteDetails.of(c.getRootPrerequisite()));
+            Hibernate.initialize(details.owningCampus);
+            return details;
+        });
+    }
 
 }

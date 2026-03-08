@@ -1,5 +1,6 @@
 package dev.J.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
@@ -9,6 +10,7 @@ import java.util.*;
 
 //FOR NOW ASSUME NO Untrackable requirements
 @Entity
+@Getter
 public class Requirement {
 
     @Id
@@ -26,6 +28,7 @@ public class Requirement {
 
     @ManyToOne(optional = true,fetch = FetchType.LAZY)
     Requirement parentRequirement;
+
 
     @OneToMany(fetch = FetchType.LAZY)
     List<Requirement> childRequirements;
