@@ -27,18 +27,20 @@ public class SercurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/planuni/consumer/entry/**","/planuni/consumer/entry/*").permitAll()
+                        .requestMatchers("/consumer/entry/**","/consumer/entry/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable());
         return http.build();
     }
 
+    private static final String CORS_ORIGIN = System.getenv("CORS_ORIGIN");
+
     @Bean
     UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.setAllowedOrigins(Arrays.asList("https://localhost:4200"));
+        configuration.setAllowedOrigins(Arrays.asList(CORS_ORIGIN));
         configuration.setAllowedMethods(Arrays.asList("GET","POST"));
         configuration.addAllowedHeader("Content-Type");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
